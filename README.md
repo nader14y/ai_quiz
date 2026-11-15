@@ -1,6 +1,6 @@
-# Quiz Battle
+# کوییز بتل (Quiz Battle)
 
-A two-player Persian quiz game with web and terminal interfaces. No database is required.
+کوییز دونفرهٔ فارسی با دو رابط وب و ترمینال. نسخهٔ وب جدول امتیازها را در دیتابیس SQLite (`quiz.db`) نگه می‌دارد و نسخهٔ ترمینال از `leaderboard.json` استفاده می‌کند. در نسخهٔ وب، بازیکن‌ها می‌توانند یک موضوع هم بنویسند تا Gemini (هوش مصنوعی) پنج سؤال تازه دربارهٔ آن بسازد.
 
 ## بازی آنلاین با GitHub Pages
 
@@ -25,28 +25,39 @@ A two-player Persian quiz game with web and terminal interfaces. No database is 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-# Windows: .venv\Scripts\activate
+# ویندوز: .venv\Scripts\activate
 python -m pip install -r requirements-web.txt
+cp .env.example .env    # بعد کلید خودتان را در .env بگذارید (بخش «سؤال با AI»)
 python web.py
 ```
 
 سپس [بازی را در مرورگر باز کنید](http://127.0.0.1:8000).
 
-۱. نام دو بازیکن را وارد کنید؛ نام‌ها باید متفاوت باشند.
+۱. نام دو بازیکن را وارد کنید؛ نام‌ها باید متفاوت باشند. اگر بخواهید، در فیلد «موضوع سؤال‌ها» یک موضوع بنویسید (مثلاً «فضا»)؛ اگر خالی بماند، سؤال‌ها از `questions.json` می‌آیند.
 ۲. بازیکن اول «آماده‌ام» را می‌زند؛ سؤال و زمان‌سنج ۳۰ ثانیه‌ای شروع می‌شوند.
 ۳. پس از پاسخ یا پایان زمان، دستگاه را به بازیکن دوم بدهید. زمان او فقط پس از زدن «آماده‌ام» شروع می‌شود.
 ۴. نتیجه و پاسخ درست پس از نوبت هر دو نفر نمایش داده می‌شوند.
 ۵. پس از پنج راند، برنده و جدول قهرمان‌ها نمایش داده می‌شوند. می‌توانید دوباره با همان افراد یا بازیکن‌های تازه بازی کنید.
 
+### سؤال با AI (موضوع دلخواه)
+
+- کلید را از Google AI Studio بگیرید و در فایل `.env` بگذارید (نمونه: `.env.example`). `web.py` و `ask.py` این فایل را با `python-dotenv` می‌خوانند. فایل `.env` در `.gitignore` است و نباید commit شود.
+- کلید فقط روی سرور است. مرورگر فقط موضوع را می‌فرستد (`topic` در `POST /api/matches`) و سرور با Gemini حرف می‌زند.
+- `ask.py` کوچک‌ترین تماس با Gemini است: `python ask.py "سؤال" "system prompt اختیاری"`. جواب و تعداد توکن‌های ورودی و خروجی را چاپ می‌کند.
+- `ai_questions.py` با یک JSON schema از مدل ۷ سؤال می‌خواهد، هر سؤال را با `engine.Question` اعتبارسنجی می‌کند و سؤال خراب یا با گزینهٔ تکراری را کنار می‌گذارد. اگر کمتر از ۵ سؤال سالم بماند، بازی شروع نمی‌شود و پیام فارسی نمایش داده می‌شود.
+- حداکثر ۳۰ بار تولید سؤال در هر ساعت. موضوع حداکثر ۶۰ نویسه است.
+- اگر کلید نباشد، اینترنت قطع باشد یا مدل در دسترس نباشد، بازی با موضوع شروع نمی‌شود، اما بازی بدون موضوع کار می‌کند. علت دقیق خطا در لاگ `quiz.ai` ثبت می‌شود.
+- نسخهٔ GitHub Pages این قابلیت را ندارد، چون سرور ندارد و جای امنی برای کلید نیست.
+
 ### داده، زمان و مدیریت خطا
 
-- سؤال‌ها از `questions.json` و جدول امتیازها از `leaderboard.json` خوانده می‌شوند. دیتابیس و حساب کاربری وجود ندارد.
+- سؤال‌ها از `questions.json` خوانده می‌شوند. جدول امتیازها در دیتابیس SQLite (`quiz.db`، جدول `players`) ذخیره می‌شود. این فایل در اولین اجرا خودبه‌خود ساخته می‌شود و در git ثبت نمی‌شود. حساب کاربری وجود ندارد.
+- برای دیدن داده‌ها: `sqlite3 quiz.db "SELECT * FROM players"`.
 - وضعیت بازی‌های فعال در حافظهٔ سرور است. تازه‌سازی صفحه بازی را ادامه می‌دهد، اما راه‌اندازی مجدد سرور بازی‌های فعال را پاک می‌کند. جدول امتیازها باقی می‌ماند.
 - بازی پس از دو ساعت بی‌فعالیتی منقضی می‌شود؛ حداکثر ۵۱۲ بازی هم‌زمان در حافظه نگه داشته می‌شود.
 - زمان پاسخ در سرور محاسبه می‌شود؛ زمان و امتیاز ارسالی مرورگر قابل اعتماد نیستند. بستن صفحه یا جابه‌جایی تب زمان را متوقف نمی‌کند. تأخیر شبکه هم بخشی از زمان پاسخ محسوب می‌شود.
 - ارسال مجدد پاسخ یا درخواست راند بعد، امتیاز یا راند اضافه نمی‌کند. نتیجهٔ پاسخ نفر اول تا پایان نوبت نفر دوم مخفی می‌ماند.
-- جدول امتیازها ابتدا در فایل موقت نوشته و سپس به‌صورت اتمی جایگزین می‌شود. خطای ذخیره، نتیجهٔ نهایی را از بین نمی‌برد؛ با تازه‌سازی صفحه یا دکمهٔ تلاش دوباره، ذخیره تکرار می‌شود.
-- فایل جدول امتیازهای خراب با هشدار در لاگ کنار گذاشته می‌شود و جدول خالی بارگذاری می‌شود. برای حفظ سابقه، پیش از اولین ذخیرهٔ بعدی فایل خراب را بررسی یا پشتیبان‌گیری کنید.
+- هر ذخیره در دیتابیس یک تراکنش است: یا کامل ثبت می‌شود یا هیچ تغییری نمی‌کند. خطای ذخیره، نتیجهٔ نهایی را از بین نمی‌برد؛ با تازه‌سازی صفحه یا دکمهٔ تلاش دوباره، ذخیره تکرار می‌شود.
 - ورودی نامعتبر، سؤال‌های خراب، نبود فایل، پایان نشست، درخواست تکراری، خطای شبکه و خطای غیرمنتظره پیام مناسب دارند. جزئیات خطای داخلی به مرورگر ارسال نمی‌شود.
 - نشست‌ها با کوکی امضاشده و `HttpOnly`/`SameSite` جدا می‌شوند. درخواست‌های تغییر وضعیت به توکن CSRF نیاز دارند. پاسخ سؤال‌ها و محتوای درخواست‌ها در لاگ ثبت نمی‌شوند.
 
@@ -61,11 +72,11 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-تست‌ها قوانین موتور، کل جریان پنج راند، دوبل و امتیاز سرعت، تساوی، محاسبهٔ زمان در سرور، پایان زمان، تازه‌سازی صفحه، جداسازی نشست‌ها، ورودی نامعتبر، CSRF، درخواست تکراری و هم‌زمان، خرابی فایل‌ها، ذخیرهٔ اتمی، بازیابی پس از خطای ذخیره و لاگ را بررسی می‌کنند. همهٔ فایل‌های دادهٔ تست در پوشه‌های موقت ایجاد می‌شوند.
+تست‌ها قوانین موتور، کل جریان پنج راند، دوبل و امتیاز سرعت، تساوی، محاسبهٔ زمان در سرور، پایان زمان، تازه‌سازی صفحه، جداسازی نشست‌ها، ورودی نامعتبر، CSRF، درخواست تکراری و هم‌زمان، خرابی فایل‌ها، جدول امتیاز SQLite، بازیابی پس از خطای ذخیره و لاگ را بررسی می‌کنند. همهٔ فایل‌ها و دیتابیس‌های تست در پوشه‌های موقت ایجاد می‌شوند. تست‌های AI (`tests/test_ai_questions.py`) یک `genai.Client` جعلی دارند؛ به اینترنت وصل نمی‌شوند و هزینه ندارند.
 
 ### تنظیمات اجرا
 
-نسخهٔ وب با Waitress و هشت thread اجرا می‌شود. چون وضعیت بازی در حافظه و جدول امتیاز در JSON نگهداری می‌شود، برنامه را با **یک process** اجرا کنید؛ اجرای چند worker/process یا اجرای هم‌زمان رابط ترمینال و وب روی یک `leaderboard.json` پشتیبانی نمی‌شود.
+نسخهٔ وب با Waitress و هشت thread اجرا می‌شود. چون وضعیت بازی‌های فعال در حافظه نگهداری می‌شود، برنامه را با **یک process** اجرا کنید؛ اجرای چند worker/process پشتیبانی نمی‌شود. جدول امتیاز وب (`quiz.db`) و ترمینال (`leaderboard.json`) جدا هستند و با هم مشترک نیستند.
 
 | متغیر محیطی | مقدار پیش‌فرض | کاربرد |
 |---|---|---|
@@ -73,21 +84,23 @@ python -m pytest -q
 | `QUIZ_PORT` | `8000` | پورت وب |
 | `QUIZ_SECRET_KEY` | تصادفی در هر اجرا | در استقرار، یک رشتهٔ تصادفی بلند و ثابت تنظیم کنید |
 | `QUIZ_HTTPS` | غیرفعال | پشت HTTPS مقدار `1` بگذارید تا کوکی فقط روی HTTPS ارسال شود |
+| `GEMINI_API_KEY` | ندارد | کلید Gemini؛ فقط در `.env` یا ترمینال، هرگز در کد |
+| `QUIZ_AI_MODEL` | `gemini-3.5-flash-lite` | نام مدل Gemini (فقط حروف لاتین، عدد، `.`، `_` و `-`) |
 
 این نسخه برای بازی نوبتی روی یک دستگاه است؛ اتاق آنلاین بین دو دستگاه ندارد. در استقرار عمومی، HTTPS را روی reverse proxy تنظیم کنید.
 
-## Terminal version
+## نسخهٔ ترمینال
 
-Each match has 5 rounds. In each round, both players answer the same multiple-choice question (A–D).
+هر مسابقه ۵ راند دارد. در هر راند، هر دو بازیکن به یک سؤال چهارگزینه‌ای (A تا D) جواب می‌دهند.
 
-- A correct answer gets **10 points**.
-- The fastest correct answer gets **+3 bonus** points.
-- An answer that takes more than **30 seconds** gets 0 points.
-- On a `"double"` power-up question, correct answers get double points.
+- جواب درست **۱۰ امتیاز** دارد.
+- سریع‌ترین جواب درست **۳ امتیاز جایزه** می‌گیرد.
+- جوابی که بیشتر از **۳۰ ثانیه** طول بکشد، امتیازی ندارد.
+- در سؤال ویژهٔ `"double"`، جواب درست امتیاز دوبرابر می‌گیرد.
 
-A leaderboard, ranked by wins and then by points, is saved to `leaderboard.json`.
+جدول قهرمان‌ها، به ترتیب تعداد برد و بعد امتیاز، در `leaderboard.json` ذخیره می‌شود.
 
-## Setup
+### نصب
 
 ```bash
 python -m venv .venv
@@ -95,56 +108,60 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Play
+### بازی
 
 ```bash
 python game.py
 ```
 
-## Test
+### تست
 
 ```bash
 pytest
 ```
 
-## Build an executable
+## ساخت فایل اجرایی
 
-Build a standalone program that runs without Python. Run the script inside the venv, on the system you are building for (PyInstaller cannot build a Windows `.exe` on a Mac, or the reverse).
+می‌توانید برنامه‌ای بسازید که بدون پایتون اجرا شود. اسکریپت را داخل venv و روی همان سیستمی اجرا کنید که برنامه برای آن ساخته می‌شود (PyInstaller روی مک فایل `.exe` ویندوز نمی‌سازد و برعکس).
 
-- **Windows:** double-click `build.bat`, or run it in a terminal.
-- **Mac:** `./build.sh`
+- **ویندوز:** روی `build.bat` دوبار کلیک کنید یا آن را در ترمینال اجرا کنید.
+- **مک:** `./build.sh`
 
-The program is created in `dist/` (`QuizBattle.exe` on Windows, `QuizBattle` on Mac). To share it, put `questions.json` in the same folder as the program. The program creates `leaderboard.json` next to itself, and writes `quiz_game.log` in the folder it is started from.
+برنامه در پوشهٔ `dist/` ساخته می‌شود (`QuizBattle.exe` در ویندوز و `QuizBattle` در مک). برای فرستادن آن به دیگران، `questions.json` را در همان پوشهٔ برنامه بگذارید. برنامه `leaderboard.json` را کنار خودش می‌سازد و `quiz_game.log` را در پوشه‌ای می‌نویسد که از آن اجرا شده است.
 
-On a Mac, the first time you open the program, right-click it and choose **Open**, because it is not signed. A program built on an Apple Silicon Mac does not run on an Intel Mac.
+در مک، بار اول روی برنامه راست‌کلیک کنید و **Open** را بزنید، چون برنامه امضا ندارد. برنامه‌ای که روی مک Apple Silicon ساخته شود، روی مک Intel اجرا نمی‌شود.
 
-## Files
+## فایل‌ها
 
-| File | Purpose |
+| فایل | کاربرد |
 |------|---------|
-| `game.py` | Terminal UI (menu, rounds, leaderboard) |
-| `web.py` | Flask API, session validation, error handlers, Waitress entry point |
-| `web_game.py` | Web match lifecycle, server timer, locking, expiry, duplicate protection |
-| `templates/` / `static/` | Responsive Persian web interface, CSS and JavaScript |
-| `engine.py` | Game rules: `Question`, `Match`, scoring |
-| `storage.py` | `QuestionBank` (reads `questions.json`) and `ScoreBoard` (`leaderboard.json`) |
-| `app_log.py` | Logging setup (writes to `quiz_game.log`) |
-| `requirements-web.txt` / `requirements-dev.txt` | Minimal web dependencies / test dependencies |
-| `questions.json` | Question bank |
-| `tests/` | pytest tests for the engine and storage |
-| `build.bat` / `build.sh` | Build the executable on Windows / Mac |
+| `game.py` | رابط ترمینال (منو، راندها، جدول قهرمان‌ها) |
+| `web.py` | API با Flask، بررسی نشست، مدیریت خطا، اجرای سرور با Waitress |
+| `web_game.py` | چرخهٔ بازی وب، زمان‌سنج سرور، قفل، انقضا، جلوگیری از درخواست تکراری |
+| `templates/` / `static/` | رابط وب فارسی و واکنش‌گرا (HTML، CSS و JavaScript) |
+| `engine.py` | قوانین بازی: `Question`، `Match` و امتیازدهی |
+| `storage.py` | `QuestionBank` (خواندن `questions.json`) و `ScoreBoard` (`leaderboard.json`، نسخهٔ ترمینال) |
+| `scoreboard_db.py` | `SqliteScoreBoard`: جدول امتیاز وب در `quiz.db` |
+| `ai_questions.py` | `QuestionWriter`: از Gemini دربارهٔ یک موضوع سؤال می‌گیرد و آن‌ها را اعتبارسنجی می‌کند |
+| `ask.py` | ساده‌ترین تماس با Gemini، برای تمرین prompt و system prompt |
+| `.env.example` | نمونهٔ فایل `.env` (`GEMINI_API_KEY` و `QUIZ_AI_MODEL`) |
+| `app_log.py` | تنظیم لاگ (نوشتن در `quiz_game.log`) |
+| `requirements-web.txt` / `requirements-dev.txt` | کتابخانه‌های لازم برای وب / برای تست |
+| `questions.json` | بانک سؤال |
+| `tests/` | تست‌های pytest |
+| `build.bat` / `build.sh` | ساخت فایل اجرایی در ویندوز / مک |
 
-## Adding questions
+## اضافه کردن سؤال
 
-Add an entry to `questions.json`:
+یک مورد به `questions.json` اضافه کنید:
 
 ```json
 {
-  "text": "Question text",
-  "options": ["A", "B", "C", "D"],
+  "text": "متن سؤال",
+  "options": ["گزینهٔ ۱", "گزینهٔ ۲", "گزینهٔ ۳", "گزینهٔ ۴"],
   "correct": "A",
   "power_up": "double"
 }
 ```
 
-Each question needs exactly 4 options, and `correct` must be a letter from A to D. `power_up` is optional.
+هر سؤال باید دقیقاً ۴ گزینه داشته باشد و `correct` باید یکی از حرف‌های A تا D باشد. `power_up` اختیاری است.
